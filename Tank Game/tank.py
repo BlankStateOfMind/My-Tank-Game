@@ -1,4 +1,5 @@
 from cmath import pi
+from tkinter import CENTER
 from turtle import position, width
 import pygame
 import random
@@ -25,6 +26,9 @@ tank_size_winner = 120
 #heart size
 heart_size = 30
 
+#reinforement heart size
+r_heart_size = 40
+
 #tanks lives
 lives_0 = 3
 lives_1 = 3
@@ -33,42 +37,62 @@ lives_1 = 3
 font = pygame.font.Font('fonts/myfont.ttf', 30)
 font2 = pygame.font.Font('fonts/myfont.ttf', 20)
 
+#sounds
+hit_sound = pygame.mixer.Sound('sounds/hit.mp3')
+select_sound = pygame.mixer.Sound('sounds/select.mp3')
+shot_sound = pygame.mixer.Sound('sounds/shot.mp3')
+menu_sound = pygame.mixer.Sound('sounds/menu.mp3')
+pygame.mixer.music.set_volume(2.3)
+
+
 #heart photos
 heart_img_0 = pygame.image.load('photos/heart_0.png')
 heart_scale_0 = pygame.transform.scale(heart_img_0, (heart_size, heart_size))
 heart_img_1 = pygame.image.load('photos/heart_1.png')
 heart_scale_1 = pygame.transform.scale(heart_img_1, (heart_size, heart_size))
 
+#reinforcement heart
+r_heart_img = pygame.image.load('photos/reinforcement_heart.png')
+r_heart_img_scale = pygame.transform.scale(r_heart_img, (r_heart_size, r_heart_size))
+
+heart_img_bonus = pygame.image.load('photos/reinforcement_heart.png')
+heart_img_bonus = pygame.transform.scale(heart_img_bonus, (r_heart_size, r_heart_size))
+heart_c = heart_img_bonus.get_rect(center=(WIDTH//2, HEIGHT//2))
+
 #bg colors
-blue_bg = pygame.image.load("photos/skyblue.png")
-pink_bg = pygame.image.load("photos/pink.png")
-black_bg = pygame.image.load("photos/black.jpg")
-green_bg = pygame.image.load("photos/green.jpg")
+blue_bg = pygame.image.load("photos/skyblue_bg.png")
+pink_bg = pygame.image.load("photos/pink_bg.png")
+black_bg = pygame.image.load("photos/black_bg.jpg")
+green_bg = pygame.image.load("photos/green_bg.jpg")
 
 #bg transform scale
-blue_bg = pygame.transform.scale(blue_bg, (WIDTH, HEIGHT))
-pink_bg = pygame.transform.scale(pink_bg, (WIDTH, HEIGHT))
-black_bg = pygame.transform.scale(black_bg, (WIDTH, HEIGHT))
-green_bg = pygame.transform.scale(green_bg, (WIDTH, HEIGHT))
+blue_bg_scale = pygame.transform.scale(blue_bg, (WIDTH, HEIGHT))
+pink_bg_scale = pygame.transform.scale(pink_bg, (WIDTH, HEIGHT))
+black_bg_scale = pygame.transform.scale(black_bg, (WIDTH, HEIGHT))
+green_bg_scale = pygame.transform.scale(green_bg, (WIDTH, HEIGHT))
 
 #bg photo
-rand_img = random.choice([blue_bg, pink_bg, black_bg, green_bg])
+rand_img = random.choice([blue_bg_scale, pink_bg_scale, black_bg_scale, green_bg_scale])
+
+# bg_photo = pygame.image.load('photos/green_bg.png')
+# bg_photo_scale = pygame.transform.scale(bg_photo, (WIDTH, HEIGHT))
 
 
 #tank 1
 tank_img_0 = pygame.image.load('photos/tank_0.png')
 tank_img_0 = pygame.transform.scale(tank_img_0, (tank_size, tank_size))
 tank_img_rotate_0 = tank_img_0
-tank_0 = tank_img_0.get_rect(center=(tank_size / 2, tank_size / 2))
+tank_0 = tank_img_0.get_rect(center=(WIDTH-tank_size, HEIGHT-tank_size))
 
-#tank size for winner image
-tank_0 = tank_img_0.get_rect(center=(tank_size_winner / 2, tank_size_winner / 2))
+# #tank size for winner image
+# tank_0 = tank_img_0.get_rect(center=(tank_size_winner / 2, tank_size_winner / 2))
 
 #tank 2
 tank_img_1 = pygame.image.load('photos/tank_1.png')
 tank_img_1 = pygame.transform.scale(tank_img_1, (tank_size, tank_size))
-tank_img_rotate_1 = pygame.transform.rotate(tank_img_1, 90)
-tank_1 = tank_img_1.get_rect(center=(tank_size / 2, tank_size / 2))
+tank_img_rotate_1 = pygame.transform.rotate(tank_img_1, 180)
+tank_1 = tank_img_1.get_rect(center=(tank_size // 1, tank_size // 1))
+
 
 # #displaying blocks and walls on screen
 # block1 = pygame.Surface((90, 100)) #Its width and height
@@ -98,13 +122,13 @@ tank_1 = tank_img_1.get_rect(center=(tank_size / 2, tank_size / 2))
 # block9 = pygame.Surface((90, 100)) #Its width and height
 # block9.fill('brown')
 
-walls = [pygame.Rect(170, 100, 125, 185), pygame.Rect(170, 400, 125, 185), pygame.Rect(445, 100, 125, 185),
-        pygame.Rect(445, 400, 125, 185), pygame.Rect(800, 100, 125, 185), pygame.Rect(800, 550, 125, 185)]
+walls = [pygame.Rect(150, 100, 125, 185), pygame.Rect(150, 400, 125, 185), pygame.Rect(425, 100, 125, 185),
+        pygame.Rect(425, 400, 125, 185), pygame.Rect(780, 100, 125, 185), pygame.Rect(800, 550, 125, 185)]
 
 
 #tan_0 = tank0(center=(t_w/2, t_y/2))
 direction_0 = 'up'
-direction_1 = 'up'
+direction_1 = 'down'
 tank_speed = 3
 
 # #game characters
@@ -155,10 +179,9 @@ def draw_tank1( tank, tank_img, tank_img_rotate, direction, keys, k_left, k_righ
         tank.y += tank_speed
         direction = 'down'
         tank_img_rotate = pygame.transform.rotate(tank_img, 180)
-        
+     
     screen.blit(tank_img_rotate, tank)
     return tank, tank_img_rotate, direction
-
 
 def draw_shells(shells):
     for shell in shells:
@@ -183,15 +206,19 @@ def draw_shells(shells):
 
 def new_shell(direction, tank):
     if direction == 'left':
+       pygame.mixer.Sound.play(shot_sound)
        return pygame.Rect(tank.left - shell_size, tank.centery - (shell_size // 2), shell_size, shell_size), direction
 
     if direction == 'right':
+       pygame.mixer.Sound.play(shot_sound)
        return pygame.Rect(tank.right - shell_size, tank.centery - (shell_size // 2), shell_size, shell_size), direction
 
     if direction == 'up':
+       pygame.mixer.Sound.play(shot_sound)
        return pygame.Rect(tank.centerx - shell_size, tank.centery - (shell_size // 2), shell_size, shell_size), direction
 
     if direction == 'down':
+       pygame.mixer.Sound.play(shot_sound)
        return pygame.Rect(tank.centerx - shell_size, tank.centery - (shell_size // 2), shell_size, shell_size), direction
     
 def shells_objects(shells):
@@ -220,6 +247,8 @@ def win_menu(tank_img):
         winner_tank_scale_0 = pygame.transform.scale(tank_img, (tank_size_winner, tank_size_winner))
         position_center = WIDTH // 2 - tank_size_winner // 2, HEIGHT // 2 - tank_size_winner // 2
         screen.blit(winner_tank_scale_0, (position_center))
+        pygame.mixer.Sound.play(menu_sound)
+
      
         pygame.display.update()
         FPS.tick(60)
@@ -234,8 +263,6 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
-            
-            
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN and len(shells_0) < 4:
                     global shell_speed
@@ -247,14 +274,24 @@ def main():
                     shells_1.append(new_shell(direction_1, tank_1))
             
         if tank_0.collidelist(shells_objects(shells_1)) != -1:
+            pygame.mixer.Sound.play(hit_sound)
             shells_1.pop(tank_0.collidelist(shells_objects(shells_1)))
             lives_0 -= 1
             
         if tank_1.collidelist(shells_objects(shells_0)) != -1:
+            pygame.mixer.Sound.play(hit_sound)
             shells_0.pop(tank_1.collidelist(shells_objects(shells_0)))
-            lives_1 -= 1         
-        
+            lives_1 -= 1   
+
+        screen.blit(rand_img, (0,0))  
+
         #tank_0 lives
+        if lives_0 == 4:
+            screen.blit(heart_scale_0, (660, 10))
+            screen.blit(heart_scale_0, (625, 10))
+            screen.blit(heart_scale_0, (590, 10))
+            screen.blit(heart_scale_0, (555, 10))
+
         if lives_0 == 3:
             screen.blit(heart_scale_0, (660, 10))
             screen.blit(heart_scale_0, (625, 10))
@@ -280,6 +317,23 @@ def main():
         if lives_1 == 1:
             screen.blit(heart_scale_1, (45, 10))
 
+        if lives_1 == 4:
+            screen.blit(heart_scale_1, (10, 10))
+            screen.blit(heart_scale_1, (45, 10))
+            screen.blit(heart_scale_1, (80, 10))
+            screen.blit(heart_scale_1, (115, 10))
+
+        #tank and heart reinforcement collision
+        if tank_0.colliderect(heart_c):
+            pygame.mixer.Sound.play(select_sound)
+            lives_0+=1
+            heart_c.x = WIDTH + 100
+        
+        if tank_1.colliderect(heart_c):
+            pygame.mixer.Sound.play(select_sound)
+            lives_1+=1
+            heart_c.x = WIDTH+100
+
         #tank menu images
         if lives_0 == 0:
             win_menu(tank_img_1)
@@ -303,6 +357,8 @@ def main():
         
         tank_1, tank_img_rotate_1, direction_1 = draw_tank1(tank_1, tank_img_1, tank_img_rotate_1, direction_1, keys,
                                                             pygame.K_a, pygame.K_d, pygame.K_w, pygame.K_s)
+
+        screen.blit(heart_img_bonus, heart_c) 
         pygame.display.update()
         FPS.tick(60)
 main()
